@@ -4,10 +4,13 @@ package tests
 
 import (
 	"encoding/json"
-	"testing"
-
+	//"fmt"
 	"github.com/pubnub/go/messaging"
 	"github.com/stretchr/testify/assert"
+	//"log"
+	//"os"
+	//"strings"
+	"testing"
 )
 
 // TestPublishStart prints a message on the screen to mark the beginning of
@@ -126,6 +129,116 @@ func TestSuccessCodeAndInfoForComplexMessage(t *testing.T) {
 	}
 }
 
+// TestFire sends out a complex message to the pubnub channel
+func TestFire(t *testing.T) {
+	assert := assert.New(t)
+
+	stop, _ := NewVCRNonSubscribe(
+		"fixtures/publish/fire", []string{"uuid"})
+	defer stop()
+	//messaging.SetLogOutput(os.Stdout)
+	//messaging.LoggingEnabled(true)
+
+	pubnubInstance := messaging.NewPubnub(PubKey, SubKey, "", "", false, "")
+	channel := "fireChannel"
+
+	message := "fireTest"
+	await := make(chan bool)
+
+	successChannel := make(chan []byte)
+	errorChannel := make(chan []byte)
+
+	go pubnubInstance.Fire(channel, message, false, successChannel, errorChannel)
+	go func() {
+		select {
+		case msg := <-successChannel:
+			assert.Contains(string(msg), "1,")
+			assert.Contains(string(msg), "\"Sent\",")
+			await <- true
+		case err := <-errorChannel:
+			assert.Fail(string(err))
+			await <- false
+		case <-timeout():
+			assert.Fail("Publish timeout")
+			await <- false
+		}
+	}()
+
+	<-await
+
+	successChannelHis := make(chan []byte)
+	errorChannelHis := make(chan []byte)
+
+	go pubnubInstance.History(channel, 1, 0, 0, false, false,
+		successChannelHis, errorChannelHis)
+	select {
+	case value := <-successChannelHis:
+		data, _, _, err := pubnubInstance.ParseJSON(value, "")
+		if err != nil {
+			assert.Fail(err.Error())
+		}
+
+		assert.NotContains(data, message)
+	case err := <-errorChannelHis:
+		assert.Fail(string(err))
+	}
+}
+
+// TestFire sends out a complex message to the pubnub channel
+func TestPublishWithReplicate(t *testing.T) {
+	assert := assert.New(t)
+
+	stop, _ := NewVCRNonSubscribe(
+		"fixtures/publish/publishWithReplicate", []string{"uuid"})
+	defer stop()
+	//messaging.SetLogOutput(os.Stdout)
+	//messaging.LoggingEnabled(true)
+
+	pubnubInstance := messaging.NewPubnub(PubKey, SubKey, "", "", false, "")
+	channel := "publishWithReplicate"
+
+	message := "publishWithReplicate"
+	await := make(chan bool)
+
+	successChannel := make(chan []byte)
+	errorChannel := make(chan []byte)
+
+	go pubnubInstance.PublishExtendedWithMetaAndReplicate(channel, message, nil, true, false, false, successChannel, errorChannel)
+	go func() {
+		select {
+		case msg := <-successChannel:
+			assert.Contains(string(msg), "1,")
+			assert.Contains(string(msg), "\"Sent\",")
+			await <- true
+		case err := <-errorChannel:
+			assert.Fail(string(err))
+			await <- false
+		case <-timeout():
+			assert.Fail("Publish timeout")
+			await <- false
+		}
+	}()
+
+	<-await
+
+	successChannelHis := make(chan []byte)
+	errorChannelHis := make(chan []byte)
+
+	go pubnubInstance.History(channel, 1, 0, 0, false, false,
+		successChannelHis, errorChannelHis)
+	select {
+	case value := <-successChannelHis:
+		data, _, _, err := pubnubInstance.ParseJSON(value, "")
+		if err != nil {
+			assert.Fail(err.Error())
+		}
+
+		assert.Contains(data, message)
+	case err := <-errorChannelHis:
+		assert.Fail(string(err))
+	}
+}
+
 // TestSuccessCodeAndInfoForComplexMessage2 sends out a complex message to the pubnub channel
 func TestSuccessCodeAndInfoForComplexMessage2(t *testing.T) {
 	assert := assert.New(t)
@@ -196,6 +309,8 @@ func TestPublishStringWithSerialization(t *testing.T) {
 
 	channel := "Channel_PublishStringWithSerialization"
 	uuid := "UUID_PublishStringWithSerialization"
+	//messaging.SetLogOutput(os.Stdout)
+	//messaging.LoggingEnabled(true)
 	pubnubInstance := messaging.NewPubnub(PubKey, SubKey, "", "", false, uuid)
 	messageToPost := "{\"name\": \"Alex\", \"age\": \"123\"}"
 
@@ -209,19 +324,27 @@ func TestPublishStringWithSerialization(t *testing.T) {
 	unsubscribeErrorChannel := make(chan []byte)
 
 	await := make(chan bool)
+	//log.SetOutput(os.Stdout)
+	//log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
+	//log.Printf("subscribing")
 
 	go pubnubInstance.Subscribe(channel, "", subscribeSuccessChannel, false,
 		subscribeErrorChannel)
 	ExpectConnectedEvent(t, channel, "", subscribeSuccessChannel,
 		subscribeErrorChannel)
-
+	//log.Printf("connected")
 	go func() {
+		//log.Printf("waiting")
 		select {
 		case message := <-subscribeSuccessChannel:
 			var response []interface{}
-			var msgs []interface{}
+			//var msgs []interface{}
 			var err error
+			//log.Printf("message %s", message)
+			/*if strings.Contains(string(message), fmt.Sprintf("'%s' connected", channel)) {
+				log.Printf("connected %s", channel)
 
+			} else {*/
 			err = json.Unmarshal(message, &response)
 			if err != nil {
 				assert.Fail(err.Error())
@@ -231,18 +354,20 @@ func TestPublishStringWithSerialization(t *testing.T) {
 			case []interface{}:
 				var messageToPostMap map[string]interface{}
 
-				msgs = response[0].([]interface{})
+				//msgs = response[0].([]interface{})
 				err := json.Unmarshal([]byte(messageToPost), &messageToPostMap)
 				if err != nil {
 					assert.Fail(err.Error())
 				}
 
-				assert.Equal(messageToPost, msgs[0])
+				assert.Contains(messageToPost, messageToPostMap["age"])
+				assert.Contains(messageToPost, messageToPostMap["name"])
 			default:
 				assert.Fail("Unexpected response type%s: ", t)
 			}
 
 			await <- true
+			//}
 		case err := <-subscribeErrorChannel:
 			assert.Fail(string(err))
 			await <- false
@@ -251,13 +376,14 @@ func TestPublishStringWithSerialization(t *testing.T) {
 			await <- false
 		}
 	}()
-
+	//sleep(1)
 	go pubnubInstance.Publish(channel, messageToPost, successChannel, errorChannel)
 	select {
 	case <-successChannel:
+		//log.Printf("pub message %s", message)
 	case err := <-errorChannel:
 		assert.Fail(string(err))
-	case <-timeout():
+	case <-timeouts(30):
 		assert.Fail("Publish timeout")
 	}
 
@@ -277,6 +403,8 @@ func TestPublishStringWithoutSerialization(t *testing.T) {
 
 	channel := "Channel_PublishStringWithoutSerialization"
 	uuid := "UUID_PublishStringWithoutSerialization"
+	//messaging.SetLogOutput(os.Stdout)
+	//messaging.LoggingEnabled(true)
 	pubnubInstance := messaging.NewPubnub(PubKey, SubKey, "", "", false, uuid)
 	messageToPost := "{\"name\": \"Alex\", \"age\": \"123\"}"
 
@@ -300,7 +428,7 @@ func TestPublishStringWithoutSerialization(t *testing.T) {
 		select {
 		case message := <-subscribeSuccessChannel:
 			var response []interface{}
-			var msgs []interface{}
+			//var msgs []interface{}
 			var err error
 
 			err = json.Unmarshal(message, &response)
@@ -312,13 +440,16 @@ func TestPublishStringWithoutSerialization(t *testing.T) {
 			case []interface{}:
 				var messageToPostMap map[string]interface{}
 
-				msgs = response[0].([]interface{})
+				//msgs = response[0].([]interface{})
 				err := json.Unmarshal([]byte(messageToPost), &messageToPostMap)
 				if err != nil {
 					assert.Fail(err.Error())
 				}
 
-				assert.Equal(messageToPostMap, msgs[0])
+				//assert.Equal(messageToPostMap, msgs[0])
+				assert.Contains(messageToPost, messageToPostMap["age"])
+				assert.Contains(messageToPost, messageToPostMap["name"])
+
 			default:
 				assert.Fail("Unexpected response type%s: ", t)
 			}

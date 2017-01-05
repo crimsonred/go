@@ -17,7 +17,7 @@ import (
 	"github.com/pubnub/go/messaging"
 )
 
-// connectChannels: the conected pubnub channels, multiple channels are stored separated by comma.
+// connectChannels: the connected pubnub channels, multiple channels are stored separated by comma.
 var connectChannels = ""
 
 // ssl: true if the ssl is enabled else false.
@@ -30,13 +30,13 @@ var cipher = ""
 var uuid = ""
 
 //
-var publishKey = ""
+var publishKey = "pub-c-25f8616c-9e80-4846-8d47-0a9257f84516"
 
 //
-var subscribeKey = ""
+var subscribeKey = "sub-c-f6e09df0-bd35-11e6-963b-0619f8945a4f"
 
 //
-var secretKey = ""
+var secretKey = "sec-c-Mjk1OGYwNTMtZmMwYS00YjRmLWIxYjctNWU5ZTFlNWJiNDY4"
 
 // a boolean to capture user preference of displaying errors.
 var displayError = true
@@ -80,16 +80,16 @@ func Init() (b bool) {
 		connectChannels = string(line)
 		if strings.TrimSpace(connectChannels) != "" {
 			fmt.Println("Channel: ", connectChannels)
-			fmt.Println("Enable SSL? Enter y for Yes, n for No.")
+			fmt.Println("Enable SSL? Enter n for No, y for Yes")
 			var enableSsl string
 			fmt.Scanln(&enableSsl)
 
-			if enableSsl == "y" || enableSsl == "Y" {
-				ssl = true
-				fmt.Println("SSL enabled")
-			} else {
+			if enableSsl == "n" || enableSsl == "N" {
 				ssl = false
 				fmt.Println("SSL disabled")
+			} else {
+				ssl = true
+				fmt.Println("SSL enabled")
 			}
 
 			fmt.Println("Please enter a subscribe key, leave blank for default key.")
@@ -179,7 +179,7 @@ func Init() (b bool) {
 				fmt.Println("Logging disabled")
 			}
 
-			messaging.SetOrigin("pubsub.pubnub.com")
+			messaging.SetOrigin("ps.pndsn.com")
 
 			var pubInstance = messaging.NewPubnub(publishKey, subscribeKey, secretKey, cipher, ssl, uuid)
 			pub = pubInstance
@@ -363,14 +363,13 @@ func askChannelGroup() (string, error) {
 func askChannelGroupOptional() (string, error) {
 	fmt.Println("Please enter the channel group name. You can leave it blank.")
 	reader := bufio.NewReader(os.Stdin)
-	channel_groups, _, errReadingChannel := reader.ReadLine()
+	channelGroups, _, errReadingChannel := reader.ReadLine()
 
 	if errReadingChannel != nil {
 		fmt.Println("Error channel group: ", errReadingChannel.Error())
 		return "", errReadingChannel
-	} else {
-		return string(channel_groups), nil
 	}
+	return string(channelGroups), nil
 }
 
 func askQuestionBool(what string, defaultYes bool) bool {
@@ -611,6 +610,14 @@ func ReadLoop() {
 			fmt.Println("ENTER 32 TO Remove Channel from Channel Group ")
 			fmt.Println("ENTER 33 TO List Channel Group ")
 			fmt.Println("ENTER 34 TO Remove Channel Group ")
+			fmt.Println("ENTER 35 TO Set Filter Expression")
+			fmt.Println("ENTER 36 TO Get Filter Expression")
+			fmt.Println("ENTER 37 FOR Publish with Meta")
+			fmt.Println("ENTER 38 FOR Publish with StoreInHistory")
+			fmt.Println("ENTER 39 FOR Publish with replicate")
+			fmt.Println("ENTER 40 FOR Fire")
+			fmt.Println("ENTER 41 FOR Subscribe V2")
+			fmt.Println("ENTER 42 FOR Subscribe Channel Group V2")
 			fmt.Println("ENTER 99 FOR Exit")
 			fmt.Println("")
 			showOptions = false
@@ -664,11 +671,13 @@ func ReadLoop() {
 			} else {
 				fmt.Println("Please enter the message")
 				message, _, err := reader.ReadLine()
+
 				if err != nil {
 					fmt.Println(err)
 				} else {
 					go publishRoutine(channels, string(message))
 				}
+				//go publishRoutine(channels, message)
 			}
 		case "4":
 			channels, errReadingChannel := askChannel()
@@ -920,6 +929,137 @@ func ReadLoop() {
 			} else {
 				go removeChannelGroupRoutine(group)
 			}
+		case "35":
+			fmt.Println("Set Filter Expression")
+			filterExp := askString("Filter Expression", false)
+			go pub.SetFilterExpression(filterExp)
+		case "335":
+			fmt.Println("Set preset Filter Expression")
+			go pub.SetFilterExpression("(aoi_x >= 0 && aoi_x <= 2) && (aoi_y >= 0 && aoi_y <= 2)")
+		case "36":
+			fmt.Println("Get Filter Expression: ", pub.FilterExpression())
+		case "37":
+			channels, errReadingChannel := askChannel()
+			nextStep := false
+			msg := ""
+			if errReadingChannel != nil {
+				fmt.Println("errReadingChannel: ", errReadingChannel)
+			} else {
+				fmt.Println("Please enter the message")
+				message, _, err := reader.ReadLine()
+				if err != nil {
+					fmt.Println(err)
+				} else {
+					nextStep = true
+					msg = string(message)
+				}
+			}
+			if nextStep {
+				metaKey := askString("Meta Key", false)
+				metaVal := askString("Meta Value", false)
+				if strings.TrimSpace(metaKey) != "" && strings.TrimSpace(metaVal) != "" {
+					meta := make(map[string]string)
+					meta[metaKey] = metaVal
+					go publishWithMetaRoutine(channels, msg, meta)
+				}
+			}
+		case "337":
+			channels, _ := askChannel()
+			meta := make(map[string]int)
+			meta["aoi_x"] = 1
+			meta["aoi_y"] = 1
+			go publishWithMetaRoutine(channels, "test", meta)
+		case "338":
+			channelGroups, errReadingChannelGrp := askChannelGroup()
+			if errReadingChannelGrp != nil {
+				fmt.Println("errReadingChannelGrp: ", errReadingChannelGrp)
+			} else {
+				fmt.Println("Running Subscribe for Channel Group")
+				go subscribeChannelGroupRoutine(channelGroups, "")
+			}
+		case "38":
+			channels, errReadingChannel := askChannel()
+			if errReadingChannel != nil {
+				fmt.Println("errReadingChannel: ", errReadingChannel)
+			} else {
+				fmt.Println("Please enter the message")
+				message, _, err := reader.ReadLine()
+
+				if err != nil {
+					fmt.Println(err)
+				} else {
+					fmt.Println("Store in history? Enter 'y' for yes or 'n' for no")
+					var storeInHistory = "n"
+					fmt.Scanln(&storeInHistory)
+					storeInHistoryBool := false
+					if storeInHistory == "Y" || storeInHistory == "y" {
+						storeInHistoryBool = true
+					}
+					go publishRoutineStoreInHistory(channels, string(message), storeInHistoryBool)
+				}
+				//go publishRoutine(channels, message)
+			}
+		case "39":
+			channels, errReadingChannel := askChannel()
+			if errReadingChannel != nil {
+				fmt.Println("errReadingChannel: ", errReadingChannel)
+			} else {
+				fmt.Println("Please enter the message")
+				message, _, err := reader.ReadLine()
+
+				if err != nil {
+					fmt.Println(err)
+				} else {
+					fmt.Println("Replicate? Enter 'y' for yes or 'n' for no")
+					var replicate = "n"
+					fmt.Scanln(&replicate)
+					replicateBool := false
+					if replicate == "Y" || replicate == "y" {
+						replicateBool = true
+					}
+					go publishRoutineReplicate(channels, string(message), replicateBool)
+				}
+				//go publishRoutine(channels, message)
+			}
+		case "40":
+			channels, errReadingChannel := askChannel()
+			if errReadingChannel != nil {
+				fmt.Println("errReadingChannel: ", errReadingChannel)
+			} else {
+				fmt.Println("Please enter the message")
+				message, _, err := reader.ReadLine()
+
+				if err != nil {
+					fmt.Println(err)
+				} else {
+					go fireRoutine(channels, string(message))
+				}
+				//go publishRoutine(channels, message)
+			}
+		case "41":
+			channels, errReadingChannel := askChannel()
+			if errReadingChannel != nil {
+				fmt.Println("errReadingChannel: ", errReadingChannel)
+			} else {
+				fmt.Println("Running Subscribe")
+				go subscribeRoutineV2(channels, "", "")
+			}
+		case "42":
+			channels, errReadingChannel := askChannelGroup()
+			if errReadingChannel != nil {
+				fmt.Println("errReadingChannel: ", errReadingChannel)
+			} else {
+				fmt.Println("Running Subscribe")
+				go subscribeRoutineV2("", channels, "")
+			}
+		case "43":
+			channels, errReadingChannel := askChannelGroup()
+			if errReadingChannel != nil {
+				fmt.Println("errReadingChannel: ", errReadingChannel)
+			} else {
+				fmt.Println("Running Subscribe CG")
+				go subscribeRoutineCG(channels, "")
+			}
 		case "99":
 			fmt.Println("Exiting")
 			pub.Abort()
@@ -1018,6 +1158,15 @@ func pamAuditChannelGroupRoutine(groups, auth string) {
 		"Channel Group Audit")
 }
 
+// SubscribeChannelGroupRoutine calls the Subscribe routine of the messaging package
+// as a parallel process.
+func subscribeChannelGroupRoutine(channelGroups string, timetoken string) {
+	var errorChannel = make(chan []byte)
+	var subscribeChannel = make(chan []byte)
+	go pub.ChannelGroupSubscribeWithTimetoken(channelGroups, timetoken, subscribeChannel, errorChannel)
+	go handleSubscribeResult(subscribeChannel, errorChannel, "Subscribe")
+}
+
 // SubscribeRoutine calls the Subscribe routine of the messaging package
 // as a parallel process.
 func subscribeRoutine(channels string, timetoken string) {
@@ -1025,6 +1174,64 @@ func subscribeRoutine(channels string, timetoken string) {
 	var subscribeChannel = make(chan []byte)
 	go pub.Subscribe(channels, timetoken, subscribeChannel, false, errorChannel)
 	go handleSubscribeResult(subscribeChannel, errorChannel, "Subscribe")
+}
+
+// SubscribeRoutine calls the Subscribe routine of the messaging package
+// as a parallel process.
+func subscribeRoutineCG(cg string, timetoken string) {
+	var errorChannel = make(chan []byte)
+	var subscribeChannel = make(chan []byte)
+	go pub.ChannelGroupSubscribe(cg, subscribeChannel, errorChannel)
+	go handleSubscribeResult(subscribeChannel, errorChannel, "Subscribe")
+}
+
+// SubscribeRoutine calls the Subscribe routine of the messaging package
+// as a parallel process.
+func subscribeRoutineV2(channels string, channelGroups string, timetoken string) {
+	var statusChannel = make(chan *messaging.PNStatus)
+	var messageChannel = make(chan *messaging.PNMessageResult)
+	var presenceChannel = make(chan *messaging.PNPresenceEventResult)
+	go pub.SubscribeV2(channels, channelGroups, "", true, statusChannel, messageChannel, presenceChannel)
+	for {
+		select {
+		case response := <-presenceChannel:
+			fmt.Println("****** Presence response ******")
+			fmt.Println("Channel:", response.Channel)
+			fmt.Println("ChannelGroup:", response.ChannelGroup)
+			fmt.Println("Event:", response.Event)
+			fmt.Println("OriginatingTimetoken:", response.OriginatingTimetoken.Timetoken)
+			fmt.Println("IssuingClientId:", string(response.IssuingClientId))
+			fmt.Println("UserMetadata:", response.UserMetadata)
+			fmt.Println("UUID:", response.UUID)
+			fmt.Println("Timestamp:", response.Timestamp)
+			fmt.Println("State:", response.State)
+			fmt.Println("Occupancy:", response.Occupancy)
+			fmt.Println("****** ******")
+		case response := <-messageChannel:
+			fmt.Println("****** Subscribe response ******")
+			fmt.Println("Channel:", response.Channel)
+			fmt.Println("ChannelGroup:", response.ChannelGroup)
+			fmt.Println("Payload:", response.Payload)
+			fmt.Println("OriginatingTimetoken:", response.OriginatingTimetoken.Timetoken)
+			fmt.Println("PublishTimetokenMetadata:", response.PublishTimetokenMetadata.Timetoken)
+			fmt.Println("IssuingClientId:", string(response.IssuingClientId))
+			fmt.Println("UserMetadata:", response.UserMetadata)
+			fmt.Println("****** ******")
+		case err := <-statusChannel:
+			if err.IsError {
+				fmt.Println("Error:", err.ErrorData.Information)
+				fmt.Println("Category:", err.Category)
+				fmt.Println("AffectedChannels:", strings.Join(err.AffectedChannels, ","))
+				fmt.Println("AffectedChannelGroups:", strings.Join(err.AffectedChannelGroups, ","))
+			} else if err.Category == messaging.PNConnectedCategory {
+				fmt.Println(fmt.Sprintf("Category: %d", err.Category))
+				fmt.Println("AffectedChannels:", strings.Join(err.AffectedChannels, ","))
+				fmt.Println("AffectedChannelGroups:", strings.Join(err.AffectedChannelGroups, ","))
+			} else {
+				fmt.Println("Category:", err.Category)
+			}
+		}
+	}
 }
 
 // SubscribeRoutine calls the Subscribe routine of the messaging package
@@ -1040,6 +1247,50 @@ func subscribeRoutine2(channels string, timetoken string) {
 // calls the Publish routine of the messaging package as a parallel
 // process. If we have multiple pubnub channels then this method will spilt the
 // channel by comma and send the message on all the pubnub channels.
+func publishWithMetaRoutine(channels, message string, meta interface{}) {
+	var errorChannel = make(chan []byte)
+	ch := strings.TrimSpace(channels)
+	fmt.Println("Publish to channel: ", ch)
+	callbackChannel := make(chan []byte)
+	go pub.PublishExtendedWithMeta(ch, message, meta, true, false, callbackChannel, errorChannel)
+
+	go handleResult(callbackChannel, errorChannel, messaging.GetNonSubscribeTimeout(), "Publish with Meta")
+}
+
+func publishRoutineStoreInHistory(channels, message string, storeInHistory bool) {
+	var errorChannel = make(chan []byte)
+	ch := strings.TrimSpace(channels)
+	fmt.Println("Publish to channel: ", ch)
+	callbackChannel := make(chan []byte)
+	go pub.PublishExtended(ch, message, storeInHistory, false, callbackChannel, errorChannel)
+
+	go handleResult(callbackChannel, errorChannel, messaging.GetNonSubscribeTimeout(), "Publish with store in history")
+}
+
+func publishRoutineReplicate(channels, message string, replicate bool) {
+	var errorChannel = make(chan []byte)
+	ch := strings.TrimSpace(channels)
+	fmt.Println("Publish to channel: ", ch)
+	callbackChannel := make(chan []byte)
+	go pub.PublishExtendedWithMetaAndReplicate(ch, message, nil, true, false, replicate, callbackChannel, errorChannel)
+
+	go handleResult(callbackChannel, errorChannel, messaging.GetNonSubscribeTimeout(), "Publish with replicate")
+}
+
+func fireRoutine(channels string, message string) {
+	var errorChannel = make(chan []byte)
+	ch := strings.TrimSpace(channels)
+	fmt.Println("Publish to channel: ", ch)
+	callbackChannel := make(chan []byte)
+	go pub.Fire(ch, message, false, callbackChannel, errorChannel)
+
+	go handleResult(callbackChannel, errorChannel, messaging.GetNonSubscribeTimeout(), "Fire")
+}
+
+// PublishRoutine asks the user the message to send to the pubnub channel(s) and
+// calls the Publish routine of the messaging package as a parallel
+// process. If we have multiple pubnub channels then this method will spilt the
+// channel by comma and send the message on all the pubnub channels.
 func publishRoutine(channels string, message string) {
 	var errorChannel = make(chan []byte)
 	channelArray := strings.Split(channels, ",")
@@ -1048,6 +1299,17 @@ func publishRoutine(channels string, message string) {
 		ch := strings.TrimSpace(channelArray[i])
 		fmt.Println("Publish to channel: ", ch)
 		channel := make(chan []byte)
+		/*event := "DialStatus: ANSWER\r\nEvent: Dial\r\nPrivilege: call,all\r\nSubEvent: End\r\nChannel: SIP/1180-00001fa3\r\nUniqueID: 1475581272.19470"
+			message2 := struct {
+			Event          string `json:"event"`
+			OrganizationId string `json:"organizationId"`
+			Type           string `json:"type"`
+		}{
+			event,
+			"someOrg",
+			"phone",
+		}
+			go pub.Publish(ch, message2, channel, errorChannel)*/
 		go pub.Publish(ch, message, channel, errorChannel)
 		go handleResult(channel, errorChannel, messaging.GetNonSubscribeTimeout(), "Publish")
 	}

@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"testing"
 	"unicode/utf16"
 
@@ -16,7 +18,7 @@ import (
 func TestPad(t *testing.T) {
 	assert := assert.New(t)
 
-	var bad_msg interface{}
+	var badMsg interface{}
 	b := []byte(`{
 	"kind": "click",
 	"user": {"key" : "user@test.com"},
@@ -25,8 +27,8 @@ func TestPad(t *testing.T) {
 	"url": "http://www.google.com"
 	}`)
 
-	json.Unmarshal(b, &bad_msg)
-	jsonSerialized, _ := json.Marshal(bad_msg)
+	json.Unmarshal(b, &badMsg)
+	jsonSerialized, _ := json.Marshal(badMsg)
 
 	actual := EncryptString("enigma", fmt.Sprintf("%s", jsonSerialized))
 	expected := "yzJ2MMyt8So18nNXm4m3Dl0XuYAOJFj2JXG8P3BGlCsDsqM44ReH15MRGbEkJZCSqgMiX1wUK44Qz8gsTcmGcZm/7KtOa+kRnvgDpNkTuBUrDqSjmYeuBLqRIEIfoGrRNljbFmP1W9Zv8iVbJMmovF+gmNNiIzlC3J9dHK51/OgW7s2EASMQJr3UJZ26PoFmmXY/wYN+2EyRnT4PBRCocQ=="
@@ -321,7 +323,11 @@ func TestUnicodeDecryption(t *testing.T) {
 	decrypted, decErr := DecryptString("enigma", message)
 	assert.NoError(decErr)
 
-	data, _, _, err := ParseJSON([]byte(decrypted.(string)), "")
+	pubInstance := Pubnub{
+		infoLogger: log.New(ioutil.Discard, "", log.Ldate|log.Ltime|log.Lshortfile),
+	}
+
+	data, _, _, err := pubInstance.ParseJSON([]byte(decrypted.(string)), "")
 	assert.NoError(err)
 	assert.Equal("漢語", data)
 }
@@ -362,7 +368,11 @@ func TestGermanDecryption(t *testing.T) {
 	decrypted, decErr := DecryptString("enigma", message)
 	assert.NoError(decErr)
 
-	data, _, _, err := ParseJSON([]byte(decrypted.(string)), "")
+	pubInstance := Pubnub{
+		infoLogger: log.New(ioutil.Discard, "", log.Ldate|log.Ltime|log.Lshortfile),
+	}
+
+	data, _, _, err := pubInstance.ParseJSON([]byte(decrypted.(string)), "")
 	assert.NoError(err)
 	assert.Equal("ÜÖ", data)
 }

@@ -1,8 +1,17 @@
 ## Contact support@pubnub.com for all questions
 
-#PubNub 3.7 client for Google App Engine SDK (1.9.28 - 2015-10-29) and Managed VMs (Google Cloud SDK 0.9.70) using Go
+#PubNub 3.9.4.3 client for Google App Engine SDK (1.9.28 - 2015-10-29) using Go
 
 ### Features
+* 3.9.4.3
+ * Changed origin to ps.pndsn.com
+* 3.9.4.1
+ * fixed misspells, some golint changes and gocyclo issues
+* 3.9.4
+ * Fire Method
+ * Replicate arg in Publish
+* 3.9.3
+ * Fixed storeInHistory when publishing
 * 3.7.0 changes
  * Add authKey argument to all PAM methods
  * Add Channel Group Methods

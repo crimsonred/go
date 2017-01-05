@@ -8,20 +8,21 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/pubnub/go-vcr/cassette"
+	"github.com/pubnub/go-vcr/recorder"
+	"github.com/pubnub/go/messaging"
+	"github.com/pubnub/go/messaging/tests/utils"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	//"log"
 	"math/rand"
 	"net/http"
+	//"os"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/anovikov1984/go-vcr/cassette"
-	"github.com/anovikov1984/go-vcr/recorder"
-	"github.com/pubnub/go/messaging"
-	"github.com/pubnub/go/messaging/tests/utils"
-	"github.com/stretchr/testify/assert"
 )
 
 // PamSubKey: key for pam tests
@@ -61,7 +62,7 @@ var connectionEventTimeout int = 20
 // prefix for presence channels
 var presenceSuffix string = "-pnpres"
 
-// publishSuccessMessage: the reponse that is received when a message is
+// publishSuccessMessage: the response that is received when a message is
 // successfully published on a pubnub channel.
 var publishSuccessMessage = "1,\"Sent\""
 
@@ -367,16 +368,21 @@ func ExpectUnsubscribedEvent(t *testing.T,
 
 func waitForEventOnEveryChannel(t *testing.T, channels, groups []string,
 	cnAction, prAction string, successChannel, errorChannel <-chan []byte) {
-
+	//log.SetOutput(os.Stdout)
+	//log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
+	//log.Printf("groups %d", len(groups))
+	//log.Printf("channels %d", len(channels))
 	var triggeredChannels []string
 	var triggeredGroups []string
 
 	channel := make(chan bool)
 
 	go func() {
+		//log.Printf("waitForEventOnEveryChannel")
 		for {
 			select {
 			case event := <-successChannel:
+				//log.Printf("waitForEventOnEveryChannel success")
 				var ary []interface{}
 
 				eventString := string(event)
@@ -398,6 +404,7 @@ func waitForEventOnEveryChannel(t *testing.T, channels, groups []string,
 					channel <- true
 					return
 				}
+				//break
 			case err := <-errorChannel:
 				assert.Fail(t, fmt.Sprintf(
 					"Error while expecting for a %s connection event", cnAction),
@@ -406,13 +413,14 @@ func waitForEventOnEveryChannel(t *testing.T, channels, groups []string,
 				return
 			}
 		}
+		//return
 	}()
-
+	//log.Printf("waitForEventOnEveryChannel breaking out")
 	select {
 	case <-channel:
 	case <-timeouts(connectionEventTimeout):
 		assert.Fail(t, fmt.Sprintf(
-			"Timeout occured for %s event. Expected channels/groups: %s/%s. "+
+			"Timeout occurred for %s event. Expected channels/groups: %s/%s. "+
 				"Received channels/groups: %s/%s\n",
 			cnAction, channels, groups, triggeredChannels, triggeredGroups))
 	}
@@ -432,6 +440,7 @@ func waitForEventOnEveryChannel(t *testing.T, channels, groups []string,
 					assert.Equal(t, prAction, event.Action)
 					assert.Equal(t, 200, event.Status)
 					channel <- true
+					break
 				case err := <-errorChannel:
 					assert.Fail(t,
 						fmt.Sprintf("Error while expecting for a %s presence event", prAction),
@@ -446,7 +455,7 @@ func waitForEventOnEveryChannel(t *testing.T, channels, groups []string,
 		case <-channel:
 		case <-timeouts(connectionEventTimeout):
 			assert.Fail(t, fmt.Sprintf(
-				"Timeout occured for %s event. Expected channels/groups: %s/%s. "+
+				"Timeout occurred for %s event. Expected channels/groups: %s/%s. "+
 					"Received channels/groups: %s/%s\n",
 				prAction, channels, groups, triggeredChannels, triggeredGroups))
 		}
