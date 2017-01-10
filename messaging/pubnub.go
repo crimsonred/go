@@ -1170,7 +1170,7 @@ func (pub *Pubnub) executeTime(callbackChannel chan []byte, errorChannel chan []
 // callbackChannel: Channel on which to send the response.
 // errorChannel on which the error response is sent.
 func (pub *Pubnub) sendPublishRequest(channel, publishURLString string,
-	storeInHistory, replicate bool, jsonBytes string, metaBytes []byte,
+	storeInHistory, replicate bool, jsonBytes string, metaBytes []byte, ttl int,
 	callbackChannel, errorChannel chan []byte) {
 
 	u := &url.URL{Path: jsonBytes}
@@ -1187,6 +1187,10 @@ func (pub *Pubnub) sendPublishRequest(channel, publishURLString string,
 
 	if !replicate {
 		publishURL = fmt.Sprintf("%s&norep=true", publishURL)
+	}
+
+	if ttl >= 0 {
+		publishURL = fmt.Sprintf("%s&ttl=%d", publishURL, ttl)
 	}
 
 	pub.publishCounterMu.Lock()
@@ -1335,7 +1339,9 @@ func (pub *Pubnub) invalidChannelV2(channel string, statusChannel chan *PNStatus
 		message := fmt.Sprintf("Invalid Channel%s: %s", groupText, channel)
 
 		status := createPNStatus(true, message, nil, 0, affectedChannels, affectedChannelGroups)
-		statusChannel <- status
+		if statusChannel != nil {
+			statusChannel <- status
+		}
 		return true
 	}
 
@@ -1441,6 +1447,12 @@ func (pub *Pubnub) PublishExtendedWithMeta(channel string, message, meta interfa
 	pub.PublishExtendedWithMetaAndReplicate(channel, message, meta, storeInHistory, doNotSerialize, true, callbackChannel, errorChannel)
 }
 
+func (pub *Pubnub) PublishExtendedWithMetaAndReplicate(channel string, message, meta interface{},
+	storeInHistory, doNotSerialize, replicate bool,
+	callbackChannel, errorChannel chan []byte) {
+	pub.PublishExtendedWithMetaReplicateAndTTL(channel, message, meta, storeInHistory, doNotSerialize, replicate, -1, callbackChannel, errorChannel)
+}
+
 // PublishExtendedWithMetaAndReplicate is the struct Pubnub's instance method that creates a publish request and calls
 // sendPublishRequest to post the request.
 //
@@ -1462,8 +1474,8 @@ func (pub *Pubnub) PublishExtendedWithMeta(channel string, message, meta interfa
 // errorChannel on which the error response is sent.
 //
 // Both callbackChannel and errorChannel are mandatory. If either is nil the code will panic
-func (pub *Pubnub) PublishExtendedWithMetaAndReplicate(channel string, message, meta interface{},
-	storeInHistory, doNotSerialize, replicate bool,
+func (pub *Pubnub) PublishExtendedWithMetaReplicateAndTTL(channel string, message, meta interface{},
+	storeInHistory, doNotSerialize, replicate bool, ttl int,
 	callbackChannel, errorChannel chan []byte) {
 
 	var publishURLBuffer bytes.Buffer
@@ -1538,13 +1550,13 @@ func (pub *Pubnub) PublishExtendedWithMetaAndReplicate(channel string, message, 
 				pub.sendErrorResponse(errorChannel, channel, fmt.Sprintf("error in serializing: %s", errEnc))
 			} else {
 				pub.sendPublishRequest(channel, publishURLBuffer.String(),
-					storeInHistory, replicate, string(jsonEncBytes), jsonSerializedMeta, callbackChannel, errorChannel)
+					storeInHistory, replicate, string(jsonEncBytes), jsonSerializedMeta, ttl, callbackChannel, errorChannel)
 			}
 		} else {
 			//messageStr := strings.Replace(string(jsonSerialized), "/", "%2F", -1)
 
 			pub.sendPublishRequest(channel, publishURLBuffer.String(), storeInHistory, replicate,
-				string(jsonSerialized), jsonSerializedMeta, callbackChannel, errorChannel)
+				string(jsonSerialized), jsonSerializedMeta, ttl, callbackChannel, errorChannel)
 		}
 	}
 }
@@ -1685,7 +1697,9 @@ func (pub *Pubnub) sendConnectionEventToChannelOrChannelGroups(channelsOrChannel
 				} else {
 					affectedChannels = append(affectedChannels, channel)
 				}
-				item.StatusChannel <- createPNStatus(false, "", nil, PNConnectedCategory, affectedChannels, affectedChannelGroups)
+				if item.StatusChannel != nil {
+					item.StatusChannel <- createPNStatus(false, "", nil, PNConnectedCategory, affectedChannels, affectedChannelGroups)
+				}
 			} else {
 				if isChannelGroup {
 					connEve := connectionEvent{
@@ -1693,7 +1707,9 @@ func (pub *Pubnub) sendConnectionEventToChannelOrChannelGroups(channelsOrChannel
 						Action: action,
 						Type:   channelGroupResponse,
 					}
-					item.SuccessChannel <- connEve.Bytes()
+					if item.SuccessChannel != nil {
+						item.SuccessChannel <- connEve.Bytes()
+					}
 
 				} else {
 					connEve := connectionEvent{
@@ -1701,7 +1717,9 @@ func (pub *Pubnub) sendConnectionEventToChannelOrChannelGroups(channelsOrChannel
 						Action:  action,
 						Type:    channelResponse,
 					}
-					item.SuccessChannel <- connEve.Bytes()
+					if item.SuccessChannel != nil {
+						item.SuccessChannel <- connEve.Bytes()
+					}
 				}
 			}
 		} else {
@@ -1793,11 +1811,17 @@ func (pub *Pubnub) sendClientSideErrorAboutSources(statusChannel chan *PNStatus,
 				Type:   tp,
 			}.StringForSource(source)
 			if tp == channelResponse {
-				statusChannel <- createPNStatus(true, errResp, nil, PNUnknownCategory, sources, nil)
+				if statusChannel != nil {
+					statusChannel <- createPNStatus(true, errResp, nil, PNUnknownCategory, sources, nil)
+				}
 			} else if tp == channelGroupResponse {
-				statusChannel <- createPNStatus(true, errResp, nil, PNUnknownCategory, nil, sources)
+				if statusChannel != nil {
+					statusChannel <- createPNStatus(true, errResp, nil, PNUnknownCategory, nil, sources)
+				}
 			} else {
-				statusChannel <- createPNStatus(true, errResp, nil, PNUnknownCategory, nil, nil)
+				if statusChannel != nil {
+					statusChannel <- createPNStatus(true, errResp, nil, PNUnknownCategory, nil, nil)
+				}
 			}
 
 		}
@@ -1837,9 +1861,13 @@ func (pub *Pubnub) sendSubscribeErrorHelper(channels, groups string,
 	for _, channel := range affectedChannels {
 		if item, found = pub.channels.Get(channel); found {
 			if item.IsV2 {
-				item.StatusChannel <- createPNStatus(true, errResp.Message, err, PNUnknownCategory, affectedChannels, nil)
+				if item.StatusChannel != nil {
+					item.StatusChannel <- createPNStatus(true, errResp.Message, err, PNUnknownCategory, affectedChannels, nil)
+				}
 			} else {
-				item.ErrorChannel <- errResp.BytesForSource(channel)
+				if item.ErrorChannel != nil {
+					item.ErrorChannel <- errResp.BytesForSource(channel)
+				}
 			}
 		}
 	}
@@ -1849,9 +1877,13 @@ func (pub *Pubnub) sendSubscribeErrorHelper(channels, groups string,
 	for _, group := range affectedChannelGroups {
 		if item, found = pub.groups.Get(group); found {
 			if item.IsV2 {
-				item.StatusChannel <- createPNStatus(true, errResp.Message, err, PNUnknownCategory, nil, affectedChannelGroups)
+				if item.StatusChannel != nil {
+					item.StatusChannel <- createPNStatus(true, errResp.Message, err, PNUnknownCategory, nil, affectedChannelGroups)
+				}
 			} else {
-				item.ErrorChannel <- errResp.BytesForSource(group)
+				if item.ErrorChannel != nil {
+					item.ErrorChannel <- errResp.BytesForSource(group)
+				}
 			}
 		}
 	}
@@ -2801,7 +2833,9 @@ func (pub *Pubnub) SubscribeV2(channels, channelGroups, timetoken string, withPr
 		message := "Either 'channel' or 'channel groups', or both should be provided."
 		pub.infoLogger.Printf(message)
 		status := createPNStatus(true, message, nil, 0, nil, nil)
-		statusChannel <- status
+		if statusChannel != nil {
+			statusChannel <- status
+		}
 		return
 	}
 
