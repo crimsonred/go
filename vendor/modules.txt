@@ -1,0 +1,34 @@
+# github.com/brianolson/cbor_go v1.0.0
+## explicit
+github.com/brianolson/cbor_go
+# github.com/davecgh/go-spew v1.1.1
+## explicit
+github.com/davecgh/go-spew/spew
+# github.com/google/uuid v1.1.1
+## explicit
+github.com/google/uuid
+# github.com/pmezard/go-difflib v1.0.0
+## explicit
+github.com/pmezard/go-difflib/difflib
+# github.com/pubnub/go v4.10.0+incompatible
+## explicit
+github.com/pubnub/go
+github.com/pubnub/go/pnerr
+github.com/pubnub/go/tests/helpers
+github.com/pubnub/go/tests/stubs
+github.com/pubnub/go/utils
+# github.com/stretchr/testify v1.2.2
+## explicit
+github.com/stretchr/testify/assert
+# golang.org/x/net v0.0.0-20190611141213-3f473d35a33a
+## explicit
+golang.org/x/net/http/httpguts
+golang.org/x/net/http2
+golang.org/x/net/http2/hpack
+golang.org/x/net/idna
+# golang.org/x/text v0.3.2
+## explicit
+golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
+golang.org/x/text/unicode/bidi
+golang.org/x/text/unicode/norm
