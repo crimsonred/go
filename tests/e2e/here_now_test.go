@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	pubnub "github.com/pubnub/go/v5"
-	"github.com/pubnub/go/v5/tests/stubs"
+	pubnub "github.com/crimsonred/go/v5"
+	"github.com/crimsonred/go/v5/tests/stubs"
 	"github.com/stretchr/testify/assert"
 )
 

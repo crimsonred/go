@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/pubnub/go/v5/pnerr"
-	"github.com/pubnub/go/v5/utils"
+	"github.com/crimsonred/go/v5/pnerr"
+	"github.com/crimsonred/go/v5/utils"
 
 	"net/http"
 	"net/url"

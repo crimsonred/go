@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	pubnub "github.com/pubnub/go/v5"
+	pubnub "github.com/crimsonred/go/v5"
 )
 
 var enableDebuggingInTests = false

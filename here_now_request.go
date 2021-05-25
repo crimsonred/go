@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/pubnub/go/v5/pnerr"
+	"github.com/crimsonred/go/v5/pnerr"
 )
 
 var hereNowPath = "/v2/presence/sub_key/%s/channel/%s"

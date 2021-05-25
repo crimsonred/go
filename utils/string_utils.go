@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
+	pnerr "github.com/crimsonred/go/v5/pnerr"
 	uuid "github.com/google/uuid"
-	pnerr "github.com/pubnub/go/v5/pnerr"
 )
 
 // JoinChannels encodes and joins channels

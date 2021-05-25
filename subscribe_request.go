@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/pubnub/go/v5/utils"
+	"github.com/crimsonred/go/v5/utils"
 )
 
 const subscribePath = "/v2/subscribe/%s/%s/0"

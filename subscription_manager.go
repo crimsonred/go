@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pubnub/go/v5/utils"
+	"github.com/crimsonred/go/v5/utils"
 )
 
 // SubscriptionManager Events:

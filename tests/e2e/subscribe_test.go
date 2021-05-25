@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
+	pubnub "github.com/crimsonred/go/v5"
+	"github.com/crimsonred/go/v5/tests/stubs"
 	"github.com/google/uuid"
-	pubnub "github.com/pubnub/go/v5"
-	"github.com/pubnub/go/v5/tests/stubs"
 	"github.com/stretchr/testify/assert"
 
 	"net/http"

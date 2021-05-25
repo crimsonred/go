@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	pubnub "github.com/pubnub/go/v5"
+	pubnub "github.com/crimsonred/go/v5"
 )
 
 func subscribe() {

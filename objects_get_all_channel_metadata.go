@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/pubnub/go/v5/pnerr"
+	"github.com/crimsonred/go/v5/pnerr"
 )
 
 var emptyGetAllChannelMetadataResponse *PNGetAllChannelMetadataResponse
