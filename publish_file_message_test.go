@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	h "github.com/pubnub/go/tests/helpers"
+	h "github.com/pubnub/go/v5/tests/helpers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,6 +13,8 @@ func AssertSuccessPublishFileMessageGetAllParameters(t *testing.T, expectedStrin
 
 	pn := NewPubNub(NewDemoConfig())
 	pn.Config.CipherKey = cipher
+	pn.Config.UseRandomInitializationVector = false
+
 	o := newPublishFileMessageBuilder(pn)
 	m1 := PNPublishFileMessage{}
 	if genFromIDAndName {

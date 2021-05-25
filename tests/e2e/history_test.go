@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	pubnub "github.com/pubnub/go"
-	"github.com/pubnub/go/tests/stubs"
+	pubnub "github.com/pubnub/go/v5"
+	"github.com/pubnub/go/v5/tests/stubs"
 	"github.com/stretchr/testify/assert"
 
 	"testing"
@@ -144,6 +144,7 @@ func TestHistoryEncryptedPNOther(t *testing.T) {
 
 	pn := pubnub.NewPubNub(config)
 	pn.SetClient(interceptor.GetClient())
+	pn.Config.UseRandomInitializationVector = false
 
 	res, _, err := pn.History().
 		Channel("ch").

@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/pubnub/go/utils"
+	"github.com/pubnub/go/v5/utils"
 )
 
 const (
@@ -80,7 +80,7 @@ func NewConfig() *Config {
 		UsePAMV3:                      true,
 		StoreTokensOnGrant:            true,
 		FileMessagePublishRetryLimit:  5,
-		UseRandomInitializationVector: false,
+		UseRandomInitializationVector: true,
 	}
 
 	c.UUID = fmt.Sprintf("pn-%s", utils.UUID())

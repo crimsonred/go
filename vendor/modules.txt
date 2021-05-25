@@ -12,11 +12,6 @@ github.com/google/uuid
 github.com/pmezard/go-difflib/difflib
 # github.com/pubnub/go v4.10.0+incompatible
 ## explicit
-github.com/pubnub/go
-github.com/pubnub/go/pnerr
-github.com/pubnub/go/tests/helpers
-github.com/pubnub/go/tests/stubs
-github.com/pubnub/go/utils
 # github.com/stretchr/testify v1.2.2
 ## explicit
 github.com/stretchr/testify/assert
