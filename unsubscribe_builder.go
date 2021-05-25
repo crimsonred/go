@@ -1,4 +1,4 @@
-package pubnub
+package crimsonred
 
 type unsubscribeBuilder struct {
 	operation *UnsubscribeOperation

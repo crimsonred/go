@@ -1,4 +1,4 @@
-package pubnub
+package crimsonred
 
 var pnconfig *Config
 var pubnub *PubNub

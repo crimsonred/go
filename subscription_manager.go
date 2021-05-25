@@ -1,4 +1,4 @@
-package pubnub
+package crimsonred
 
 import (
 	"encoding/json"

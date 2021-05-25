@@ -1,4 +1,4 @@
-package pubnub
+package crimsonred
 
 // PNPublishMessage is the part of the message struct used in Publish File
 type PNPublishMessage struct {

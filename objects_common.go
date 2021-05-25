@@ -1,4 +1,4 @@
-package pubnub
+package crimsonred
 
 // PNUUID is the Objects API user struct
 type PNUUID struct {

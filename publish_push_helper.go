@@ -1,4 +1,4 @@
-package pubnub
+package crimsonred
 
 // PNMPNSData is the struct used for the MPNS paylod
 type PNMPNSData struct {

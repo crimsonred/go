@@ -1,6 +1,6 @@
 // +build !go1.7
 
-package pubnub
+package crimsonred
 
 // import (
 // 	"golang.org/x/net/context"
